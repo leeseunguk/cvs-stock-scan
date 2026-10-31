@@ -1,0 +1,9 @@
+{
+  "name": "cvs-stock-scan",
+  "version": "0.1.0",
+  "description": "편의점(CU/이마트24/세븐일레븐) 재고 지역 스캔 CLI",
+  "type": "module",
+  "bin": { "cvs-stock": "./src/cli.js" },
+  "scripts": { "start": "bun src/cli.js" },
+  "license": "MIT"
+}
