@@ -43,6 +43,25 @@ bun src/cli.js "생수" --region 충남 --chain emart24
 bun src/cli.js "이스까이말벡" --region 제주 --chain cu,seven,emart24
 ```
 
+## MCP 서버로 사용
+
+의존성 없는 stdio JSON-RPC 구현입니다. MCP 클라이언트 설정에 등록하면 됩니다.
+
+```json
+{
+  "mcpServers": {
+    "cvs-stock": {
+      "command": "bun",
+      "args": ["/절대경로/cvs-stock/src/mcp.js"]
+    }
+  }
+}
+```
+
+제공 도구:
+- `cvs_product_search` — `{chain, keyword}` → 상품명·코드
+- `cvs_stock_scan` — `{keyword, chain?, region?, limit?, concurrency?}` → 지역별 점포 통계 + 재고 점포 목록
+
 ## 동작 방식
 
 - **CU**: PocketCU 앱 API(`/api/store`). 한 번 호출에 반경 약 1km, 최대 50개 점포만 반환하고 페이지는 무시되므로 지역 상자를 약 1.6km 간격 격자로 스캔합니다. 재고 수량은 같은 응답에 포함됩니다. 5xx는 최대 4번 재시도합니다.
