@@ -46,6 +46,13 @@ const args = parseArgs(process.argv.slice(2));
 if (!args.keyword) usage();
 const regions = resolveRegions(args.region);
 const results = [];
+const seen = new Set();
+function add(hit, key) {
+  const id = `${hit.chain}:${key}`;
+  if (seen.has(id)) return;
+  seen.add(id);
+  results.push(hit);
+}
 
 for (const chain of args.chains) {
   console.error(`\n=== ${chain.toUpperCase()} ===`);
@@ -58,8 +65,8 @@ for (const chain of args.chains) {
         const { calls, stores } = await cuScanRegion(item, REGIONS[r].bbox, args.step, (c, n) => {
           console.error(`[${r}] ${c}회 호출, 점포 ${n}개`);
         });
-        const hit = stores.filter(cuInStock).map((s) => ({ chain: 'CU', region: r, ...cuStoreInfo(s) }));
-        results.push(...hit);
+        for (const s of stores.filter(cuInStock))
+          add({ chain: 'CU', region: r, ...cuStoreInfo(s) }, s.storeCd);
         console.error(`[${r}] 완료: 호출 ${calls}회, 점포 ${stores.length}, 재고 ${hit.length}`);
       }
     } else if (chain === 'emart24') {
@@ -72,11 +79,15 @@ for (const chain of args.chains) {
           for (const s of await e24StoresByArea(a1)) if (!storeMap.has(s.CODE)) storeMap.set(s.CODE, s);
         }
         const qtyMap = await e24Stocks(item.pluCd, [...storeMap.keys()], args.concurrency);
-        const hit = [...storeMap.values()]
-          .map((s) => ({ chain: 'E24', region: r, ...e24StoreInfo(s, qtyMap.get(String(s.CODE))) }))
-          .filter((x) => x.stock > 0);
-        results.push(...hit);
-        console.error(`[${r}] 점포 ${storeMap.size}, 재고 ${hit.length}`);
+        let hit = 0;
+        for (const s of storeMap.values()) {
+          const info = e24StoreInfo(s, qtyMap.get(String(s.CODE)));
+          if (info.stock > 0) {
+            add({ chain: 'E24', region: r, ...info }, s.CODE);
+            hit++;
+          }
+        }
+        console.error(`[${r}] 점포 ${storeMap.size}, 재고 ${hit}`);
       }
     } else {
       const item = await s7FindItem(args.keyword);
@@ -91,11 +102,15 @@ for (const chain of args.chains) {
         let list = [...storeMap.values()];
         if (list.length > args.limit) list = list.slice(0, args.limit);
         const qtyMap = await s7Stocks(item, list, args.concurrency);
-        const hit = list
-          .map((s) => ({ chain: '7-ELEVEN', region: r, ...s7StoreInfo(s, qtyMap.get(s.storeCd)) }))
-          .filter((x) => x.stock > 0);
-        results.push(...hit);
-        console.error(`[${r}] 점포 ${list.length}, 재고 ${hit.length}`);
+        let hit = 0;
+        for (const s of list) {
+          const info = s7StoreInfo(s, qtyMap.get(s.storeCd));
+          if (info.stock > 0) {
+            add({ chain: '7-ELEVEN', region: r, ...info }, s.storeCd);
+            hit++;
+          }
+        }
+        console.error(`[${r}] 점포 ${list.length}, 재고 ${hit}`);
       }
     }
   } catch (e) {

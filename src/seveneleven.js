@@ -95,9 +95,14 @@ export async function s7Stocks(item, stores, concurrency = 6) {
 }
 
 export function s7StoreInfo(store, qty) {
+  const joined = `${store.addr1 ?? ''} ${store.addr2 ?? ''}`.trim();
+  const address =
+    store.address || store.addr || store.roadAddr || store.shopAddr || joined;
+  const coord =
+    store.storeLat && store.storeLon ? `${store.storeLat},${store.storeLon}` : '';
   return {
     name: store.storeNm,
     stock: qty ?? -1,
-    address: `${store.addr1 ?? ''} ${store.addr2 ?? ''}`.trim(),
+    address: address || coord,
   };
 }
